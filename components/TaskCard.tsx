@@ -37,12 +37,14 @@ export default function TaskCard({ task, onDelete, onEdit }: TaskCardProps) {
         <h4 className="font-semibold text-gray-800 flex-1">{task.title}</h4>
         <div className="flex gap-1 ml-2">
           <button
+            title='Edit'
             onClick={() => onEdit(task)}
             className="p-1 hover:bg-gray-100 rounded transition-colors"
           >
             <Edit size={16} className="text-gray-600" />
           </button>
           <button
+            title='Delete'
             onClick={() => onDelete(task.id)}
             className="p-1 hover:bg-red-50 rounded transition-colors"
           >

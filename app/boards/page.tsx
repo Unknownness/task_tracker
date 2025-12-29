@@ -134,6 +134,7 @@ export default function BoardsPage() {
                     </button>
                     {selectedBoardId === board.id && (
                       <button
+                        title='Delete'
                         onClick={() => {
                           if (confirm('Delete this board and all its tasks?')) {
                             deleteBoard(board.id);
@@ -265,6 +266,7 @@ export default function BoardsPage() {
               Priority
             </label>
             <select
+              title='Priority'
               value={taskForm.priority}
               onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -297,6 +299,7 @@ export default function BoardsPage() {
               Task Title *
             </label>
             <input
+              title='Title'
               type="text"
               value={taskForm.title}
               onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
@@ -309,6 +312,7 @@ export default function BoardsPage() {
               Description
             </label>
             <textarea
+              title='Description'
               value={taskForm.description}
               onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -320,6 +324,7 @@ export default function BoardsPage() {
               Priority
             </label>
             <select
+              title='Priority'
               value={taskForm.priority}
               onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

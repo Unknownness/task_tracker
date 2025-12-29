@@ -181,6 +181,7 @@ export default function NotesPage() {
               Title *
             </label>
             <input
+              title='Title'
               type="text"
               value={noteForm.title}
               onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
@@ -193,6 +194,7 @@ export default function NotesPage() {
               Content
             </label>
             <textarea
+              title='Content'
               value={noteForm.content}
               onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"

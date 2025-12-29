@@ -17,12 +17,14 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
         <h3 className="font-semibold text-lg text-gray-800 flex-1">{note.title}</h3>
         <div className="flex gap-1 ml-2">
           <button
+            title='Edit'
             onClick={() => onEdit(note)}
             className="p-1 hover:bg-gray-100 rounded transition-colors"
           >
             <Edit size={18} className="text-gray-600" />
           </button>
           <button
+            title='Delete'
             onClick={() => onDelete(note.id)}
             className="p-1 hover:bg-red-50 rounded transition-colors"
           >
