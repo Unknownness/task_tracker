@@ -1,108 +1,151 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { Board, Task, Note, ColumnType, Priority } from './types';
 
 interface AppState {
   boards: Board[];
   tasks: Task[];
   notes: Note[];
+  isLoading: boolean;
+  
+  // Fetch actions
+  fetchBoards: () => Promise<void>;
+  fetchTasks: () => Promise<void>;
+  fetchNotes: () => Promise<void>;
   
   // Board actions
-  addBoard: (name: string, description: string) => void;
-  deleteBoard: (id: string) => void;
-  updateBoard: (id: string, name: string, description: string) => void;
+  addBoard: (name: string, description: string) => Promise<void>;
+  deleteBoard: (id: string) => Promise<void>;
+  updateBoard: (id: string, name: string, description: string) => Promise<void>;
   
   // Task actions
-  addTask: (boardId: string, title: string, description: string, priority: Priority) => void;
-  deleteTask: (id: string) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  moveTask: (id: string, column: ColumnType) => void;
+  addTask: (boardId: string, title: string, description: string, priority: Priority) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  moveTask: (id: string, column: ColumnType) => Promise<void>;
   
   // Note actions
-  addNote: (title: string, content: string) => void;
-  deleteNote: (id: string) => void;
-  updateNote: (id: string, title: string, content: string) => void;
+  addNote: (title: string, content: string) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
+  updateNote: (id: string, title: string, content: string) => Promise<void>;
 }
 
-export const useStore = create<AppState>()(
-  persist(
-    (set) => ({
-      boards: [],
-      tasks: [],
-      notes: [],
-      
-      addBoard: (name, description) => set((state) => ({
-        boards: [...state.boards, {
-          id: crypto.randomUUID(),
-          name,
-          description,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteBoard: (id) => set((state) => ({
-        boards: state.boards.filter(b => b.id !== id),
-        tasks: state.tasks.filter(t => t.boardId !== id),
-      })),
-      
-      updateBoard: (id, name, description) => set((state) => ({
-        boards: state.boards.map(b => 
-          b.id === id ? { ...b, name, description, updatedAt: new Date().toISOString() } : b
-        ),
-      })),
-      
-      addTask: (boardId, title, description, priority) => set((state) => ({
-        tasks: [...state.tasks, {
-          id: crypto.randomUUID(),
-          title,
-          description,
-          priority,
-          column: 'todo',
-          boardId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteTask: (id) => set((state) => ({
-        tasks: state.tasks.filter(t => t.id !== id),
-      })),
-      
-      updateTask: (id, updates) => set((state) => ({
-        tasks: state.tasks.map(t => 
-          t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-        ),
-      })),
-      
-      moveTask: (id, column) => set((state) => ({
-        tasks: state.tasks.map(t => 
-          t.id === id ? { ...t, column, updatedAt: new Date().toISOString() } : t
-        ),
-      })),
-      
-      addNote: (title, content) => set((state) => ({
-        notes: [...state.notes, {
-          id: crypto.randomUUID(),
-          title,
-          content,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteNote: (id) => set((state) => ({
-        notes: state.notes.filter(n => n.id !== id),
-      })),
-      
-      updateNote: (id, title, content) => set((state) => ({
-        notes: state.notes.map(n => 
-          n.id === id ? { ...n, title, content, updatedAt: new Date().toISOString() } : n
-        ),
-      })),
-    }),
-    {
-      name: 'task-tracker-storage',
-    }
-  )
-);
+export const useStore = create<AppState>()((set, get) => ({
+  boards: [],
+  tasks: [],
+  notes: [],
+  isLoading: false,
+  
+  fetchBoards: async () => {
+    const res = await fetch('/api/boards');
+    const boards = await res.json();
+    set({ boards });
+  },
+  
+  fetchTasks: async () => {
+    const res = await fetch('/api/tasks');
+    const tasks = await res.json();
+    set({ tasks });
+  },
+  
+  fetchNotes: async () => {
+    const res = await fetch('/api/notes');
+    const notes = await res.json();
+    set({ notes });
+  },
+  
+  addBoard: async (name, description) => {
+    const res = await fetch('/api/boards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description }),
+    });
+    const board = await res.json();
+    set((state) => ({ boards: [board, ...state.boards] }));
+  },
+  
+  deleteBoard: async (id) => {
+    await fetch(`/api/boards?id=${id}`, { method: 'DELETE' });
+    set((state) => ({
+      boards: state.boards.filter(b => b.id !== id),
+      tasks: state.tasks.filter(t => t.boardId !== id),
+    }));
+  },
+  
+  updateBoard: async (id, name, description) => {
+    const res = await fetch('/api/boards', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name, description }),
+    });
+    const board = await res.json();
+    set((state) => ({
+      boards: state.boards.map(b => b.id === id ? board : b),
+    }));
+  },
+  
+  addTask: async (boardId, title, description, priority) => {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ boardId, title, description, priority }),
+    });
+    const task = await res.json();
+    set((state) => ({ tasks: [task, ...state.tasks] }));
+  },
+  
+  deleteTask: async (id) => {
+    await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
+    set((state) => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+  },
+  
+  updateTask: async (id, updates) => {
+    const res = await fetch('/api/tasks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    const task = await res.json();
+    set((state) => ({
+      tasks: state.tasks.map(t => t.id === id ? task : t),
+    }));
+  },
+  
+  moveTask: async (id, column) => {
+    const res = await fetch('/api/tasks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, column }),
+    });
+    const task = await res.json();
+    set((state) => ({
+      tasks: state.tasks.map(t => t.id === id ? task : t),
+    }));
+  },
+  
+  addNote: async (title, content) => {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content }),
+    });
+    const note = await res.json();
+    set((state) => ({ notes: [note, ...state.notes] }));
+  },
+  
+  deleteNote: async (id) => {
+    await fetch(`/api/notes?id=${id}`, { method: 'DELETE' });
+    set((state) => ({ notes: state.notes.filter(n => n.id !== id) }));
+  },
+  
+  updateNote: async (id, title, content) => {
+    const res = await fetch('/api/notes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, title, content }),
+    });
+    const note = await res.json();
+    set((state) => ({
+      notes: state.notes.map(n => n.id === id ? note : n),
+    }));
+  },
+}));

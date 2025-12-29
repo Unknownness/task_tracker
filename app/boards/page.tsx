@@ -10,7 +10,7 @@ import Modal from '@/components/Modal';
 import { Plus, Trash2, Edit } from 'lucide-react';
 
 export default function BoardsPage() {
-  const { boards, tasks, addBoard, deleteBoard, addTask, deleteTask, updateTask, moveTask } = useStore();
+  const { boards, tasks, addBoard, deleteBoard, addTask, deleteTask, updateTask, moveTask, fetchBoards, fetchTasks } = useStore();
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -20,7 +20,9 @@ export default function BoardsPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchBoards();
+    fetchTasks();
+  }, [fetchBoards, fetchTasks]);
 
   useEffect(() => {
     if (mounted && boards.length > 0 && !selectedBoardId) {

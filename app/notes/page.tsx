@@ -8,7 +8,7 @@ import Modal from '@/components/Modal';
 import { Plus, Search } from 'lucide-react';
 
 export default function NotesPage() {
-  const { notes, addNote, deleteNote, updateNote } = useStore();
+  const { notes, addNote, deleteNote, updateNote, fetchNotes } = useStore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -17,7 +17,8 @@ export default function NotesPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchNotes();
+  }, [fetchNotes]);
 
   const [noteForm, setNoteForm] = useState({
     title: '',

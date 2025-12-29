@@ -31,9 +31,10 @@ A modern, full-stack task tracking application built with Next.js 14, featuring 
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
+- **Database**: SQLite with Prisma ORM
 - **Styling**: Tailwind CSS
 - **Drag & Drop**: React DnD
-- **State Management**: Zustand with persistence
+- **State Management**: Zustand
 - **Icons**: Lucide React
 - **Date Formatting**: date-fns
 
@@ -50,12 +51,17 @@ A modern, full-stack task tracking application built with Next.js 14, featuring 
 npm install
 ```
 
-2. Run the development server:
+2. Initialize the database:
+```bash
+npm run db:push
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ### Build for Production
 
@@ -64,23 +70,41 @@ npm run build
 npm start
 ```
 
+### Database Commands
+
+```bash
+# Push schema changes to database
+npm run db:push
+
+# Open Prisma Studio (database GUI)
+npm run db:studio
+```
+
 ## Project Structure
 
 ```
 /app
-  /boards          # Kanban boards page
-  /notes           # Notes page
-  layout.tsx       # Root layout with navigation
-  page.tsx         # Home page
-  globals.css      # Global styles
+  /api              # API routes for database operations
+    /boards         # Board CRUD endpoints
+    /tasks          # Task CRUD endpoints
+    /notes          # Note CRUD endpoints
+  /boards           # Kanban boards page
+  /notes            # Notes page
+  layout.tsx        # Root layout with navigation
+  page.tsx          # Home page
+  globals.css       # Global styles
 /components
-  KanbanColumn.tsx # Drag-drop column component
-  TaskCard.tsx     # Individual task card
-  NoteCard.tsx     # Individual note card
-  Modal.tsx        # Reusable modal component
+  KanbanColumn.tsx  # Drag-drop column component
+  TaskCard.tsx      # Individual task card
+  NoteCard.tsx      # Individual note card
+  Modal.tsx         # Reusable modal component
 /lib
-  types.ts         # TypeScript type definitions
-  store.ts         # Zustand state management
+  types.ts          # TypeScript type definitions
+  store.ts          # Zustand state management
+  prisma.ts         # Prisma client singleton
+/prisma
+  schema.prisma     # Database schema
+  dev.db            # SQLite database file
 ```
 
 ## Usage
@@ -109,7 +133,7 @@ npm start
 
 ## Data Persistence
 
-All data is automatically saved to browser's localStorage. Your boards, tasks, and notes will persist across browser sessions.
+All data is stored in a SQLite database using Prisma ORM. The database file is located at `prisma/dev.db` and persists across application restarts. You can view and manage your data using Prisma Studio with `npm run db:studio`.
 
 ## Browser Support
 
