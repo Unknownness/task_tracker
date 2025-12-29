@@ -14,11 +14,11 @@ export default function Home() {
     fetchUser();
   }, [fetchUser]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (user) {
       router.push('/boards');
     }
-  }, [user, router]);
+  }, [user, router]);*/
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-4xl w-full">
