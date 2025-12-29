@@ -7,9 +7,18 @@ import { useStore } from '@/lib/store';
 import { Task, Priority, ColumnType } from '@/lib/types';
 import KanbanColumn from '@/components/KanbanColumn';
 import Modal from '@/components/Modal';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import AuthGuard from '@/components/AuthGuard';
+import { Plus, Trash2 } from 'lucide-react';
 
 export default function BoardsPage() {
+  return (
+    <AuthGuard>
+      <BoardsContent />
+    </AuthGuard>
+  );
+}
+
+function BoardsContent() {
   const { boards, tasks, addBoard, deleteBoard, addTask, deleteTask, updateTask, moveTask, fetchBoards, fetchTasks } = useStore();
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);

@@ -5,9 +5,18 @@ import { useStore } from '@/lib/store';
 import { Note } from '@/lib/types';
 import NoteCard from '@/components/NoteCard';
 import Modal from '@/components/Modal';
+import AuthGuard from '@/components/AuthGuard';
 import { Plus, Search } from 'lucide-react';
 
 export default function NotesPage() {
+  return (
+    <AuthGuard>
+      <NotesContent />
+    </AuthGuard>
+  );
+}
+
+function NotesContent() {
   const { notes, addNote, deleteNote, updateNote, fetchNotes } = useStore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);

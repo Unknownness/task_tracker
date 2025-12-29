@@ -1,11 +1,19 @@
 import { create } from 'zustand';
-import { Board, Task, Note, ColumnType, Priority } from './types';
+import { Board, Task, Note, ColumnType, Priority, User } from './types';
 
 interface AppState {
+  user: User | null;
   boards: Board[];
   tasks: Task[];
   notes: Note[];
   isLoading: boolean;
+  
+  // Auth actions
+  setUser: (user: User | null) => void;
+  fetchUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
   
   // Fetch actions
   fetchBoards: () => Promise<void>;
@@ -30,10 +38,56 @@ interface AppState {
 }
 
 export const useStore = create<AppState>()((set, get) => ({
+  user: null,
   boards: [],
   tasks: [],
   notes: [],
   isLoading: false,
+  
+  setUser: (user) => set({ user }),
+  
+  fetchUser: async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      set({ user: data.user });
+    } catch (error) {
+      set({ user: null });
+    }
+  },
+  
+  login: async (email, password) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Login failed');
+    }
+    const data = await res.json();
+    set({ user: data.user });
+  },
+  
+  register: async (email, password, name) => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Registration failed');
+    }
+    const data = await res.json();
+    set({ user: data.user });
+  },
+  
+  logout: async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    set({ user: null, boards: [], tasks: [], notes: [] });
+  },
   
   fetchBoards: async () => {
     const res = await fetch('/api/boards');

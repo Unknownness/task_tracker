@@ -1,7 +1,24 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useStore } from '@/lib/store';
 import Link from 'next/link';
 import { LayoutDashboard, StickyNote, ArrowRight } from 'lucide-react';
 
 export default function Home() {
+  const router = useRouter();
+  const { user, fetchUser } = useStore();
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  useEffect(() => {
+    if (user) {
+      router.push('/boards');
+    }
+  }, [user, router]);
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-4xl w-full">
