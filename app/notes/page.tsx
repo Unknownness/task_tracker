@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { Note } from '@/lib/types';
+import { Note, ChecklistItem } from '@/lib/types';
 import NoteCard from '@/components/NoteCard';
 import Modal from '@/components/Modal';
 import AuthGuard from '@/components/AuthGuard';
+import Checklist from '@/components/Checklist';
 import { Plus, Search } from 'lucide-react';
 
 export default function NotesPage() {
@@ -32,6 +33,7 @@ function NotesContent() {
   const [noteForm, setNoteForm] = useState({
     title: '',
     content: '',
+    checklist: [] as ChecklistItem[],
   });
 
   if (!mounted) return null;
@@ -45,8 +47,8 @@ function NotesContent() {
   const handleCreateNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (noteForm.title.trim()) {
-      addNote(noteForm.title, noteForm.content);
-      setNoteForm({ title: '', content: '' });
+      addNote(noteForm.title, noteForm.content, noteForm.checklist);
+      setNoteForm({ title: '', content: '', checklist: [] });
       setIsCreateOpen(false);
     }
   };
@@ -54,8 +56,8 @@ function NotesContent() {
   const handleEditNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingNote && noteForm.title.trim()) {
-      updateNote(editingNote.id, noteForm.title, noteForm.content);
-      setNoteForm({ title: '', content: '' });
+      updateNote(editingNote.id, noteForm.title, noteForm.content, noteForm.checklist);
+      setNoteForm({ title: '', content: '', checklist: [] });
       setIsEditOpen(false);
       setEditingNote(null);
     }
@@ -66,6 +68,7 @@ function NotesContent() {
     setNoteForm({
       title: note.title,
       content: note.content,
+      checklist: note.checklist || [],
     });
     setIsEditOpen(true);
   };
@@ -168,6 +171,15 @@ function NotesContent() {
               placeholder="Write your note here..."
             />
           </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist (optional)
+            </label>
+            <Checklist 
+              items={noteForm.checklist} 
+              onChange={(items) => setNoteForm({ ...noteForm, checklist: items })}
+            />
+          </div>
           <button
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
@@ -209,6 +221,15 @@ function NotesContent() {
               onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               rows={8}
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist
+            </label>
+            <Checklist 
+              items={noteForm.checklist} 
+              onChange={(items) => setNoteForm({ ...noteForm, checklist: items })}
             />
           </div>
           <button

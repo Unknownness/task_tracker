@@ -1,7 +1,7 @@
 'use client';
 
 import { Note } from '@/lib/types';
-import { Trash2, Edit, Clock } from 'lucide-react';
+import { Trash2, Edit, Clock, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface NoteCardProps {
@@ -11,6 +11,9 @@ interface NoteCardProps {
 }
 
 export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
+  const checklistCount = note.checklist?.length || 0;
+  const completedChecklist = note.checklist?.filter(c => c.completed).length || 0;
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-3">
@@ -34,6 +37,13 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
       </div>
       
       <p className="text-gray-600 whitespace-pre-wrap mb-4">{note.content}</p>
+      
+      {checklistCount > 0 && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-100">
+          <CheckSquare size={16} />
+          <span>{completedChecklist}/{checklistCount} completed</span>
+        </div>
+      )}
       
       <div className="flex items-center text-xs text-gray-500">
         <Clock size={12} className="mr-1" />

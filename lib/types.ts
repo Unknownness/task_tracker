@@ -7,14 +7,31 @@ export interface User {
   name: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  taskId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   description: string;
   priority: Priority;
   column: ColumnType;
+  checklist: ChecklistItem[];
   boardId: string;
   userId: string;
+  subtasks?: Subtask[];
   createdAt: string;
   updatedAt: string;
 }
@@ -32,6 +49,7 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  checklist: ChecklistItem[];
   userId: string;
   createdAt: string;
   updatedAt: string;

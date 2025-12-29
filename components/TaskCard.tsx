@@ -2,7 +2,7 @@
 
 import { useDrag } from 'react-dnd';
 import { Task } from '@/lib/types';
-import { Trash2, Edit, Clock } from 'lucide-react';
+import { Trash2, Edit, Clock, CheckSquare, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TaskCardProps {
@@ -25,6 +25,11 @@ export default function TaskCard({ task, onDelete, onEdit }: TaskCardProps) {
       isDragging: monitor.isDragging(),
     }),
   }));
+
+  const subtaskCount = task.subtasks?.length || 0;
+  const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
+  const checklistCount = task.checklist?.length || 0;
+  const completedChecklist = task.checklist?.filter(c => c.completed).length || 0;
 
   return (
     <div
@@ -57,7 +62,7 @@ export default function TaskCard({ task, onDelete, onEdit }: TaskCardProps) {
         <p className="text-sm text-gray-600 mb-3">{task.description}</p>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <span className={`text-xs px-2 py-1 rounded-full border ${priorityColors[task.priority]}`}>
           {task.priority}
         </span>
@@ -66,6 +71,23 @@ export default function TaskCard({ task, onDelete, onEdit }: TaskCardProps) {
           {format(new Date(task.updatedAt), 'MMM d')}
         </div>
       </div>
+
+      {(subtaskCount > 0 || checklistCount > 0) && (
+        <div className="flex gap-3 text-xs text-gray-600 pt-2 border-t border-gray-100">
+          {subtaskCount > 0 && (
+            <div className="flex items-center gap-1">
+              <ListTodo size={14} />
+              <span>{completedSubtasks}/{subtaskCount}</span>
+            </div>
+          )}
+          {checklistCount > 0 && (
+            <div className="flex items-center gap-1">
+              <CheckSquare size={14} />
+              <span>{completedChecklist}/{checklistCount}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

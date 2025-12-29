@@ -10,9 +10,16 @@ export async function GET() {
 
   const tasks = await prisma.task.findMany({
     where: { userId: session.userId },
+    include: { subtasks: true },
     orderBy: { createdAt: 'desc' },
   });
-  return NextResponse.json(tasks);
+  
+  const tasksWithChecklist = tasks.map(task => ({
+    ...task,
+    checklist: JSON.parse(task.checklist || '[]')
+  }));
+  
+  return NextResponse.json(tasksWithChecklist);
 }
 
 export async function POST(request: Request) {
@@ -21,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { boardId, title, description, priority } = await request.json();
+  const { boardId, title, description, priority, checklist } = await request.json();
   const task = await prisma.task.create({
     data: {
       boardId,
@@ -29,10 +36,16 @@ export async function POST(request: Request) {
       description,
       priority,
       column: 'todo',
+      checklist: JSON.stringify(checklist || []),
       userId: session.userId,
     },
+    include: { subtasks: true },
   });
-  return NextResponse.json(task);
+  
+  return NextResponse.json({
+    ...task,
+    checklist: JSON.parse(task.checklist)
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -57,10 +70,21 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, ...data } = await request.json();
+  const { id, checklist, ...data } = await request.json();
+  const updateData: any = { ...data };
+  
+  if (checklist !== undefined) {
+    updateData.checklist = JSON.stringify(checklist);
+  }
+  
   const task = await prisma.task.update({
     where: { id, userId: session.userId },
-    data,
+    data: updateData,
+    include: { subtasks: true },
   });
-  return NextResponse.json(task);
+  
+  return NextResponse.json({
+    ...task,
+    checklist: JSON.parse(task.checklist)
+  });
 }

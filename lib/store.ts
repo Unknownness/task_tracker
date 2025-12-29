@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { Board, Task, Note, ColumnType, Priority, User } from './types';
+import { Board, Task, Note, ColumnType, Priority, User, Subtask, ChecklistItem } from './types';
 
 interface AppState {
   user: User | null;
   boards: Board[];
   tasks: Task[];
   notes: Note[];
+  subtasks: Record<string, Subtask[]>;
   isLoading: boolean;
   
   // Auth actions
@@ -19,6 +20,7 @@ interface AppState {
   fetchBoards: () => Promise<void>;
   fetchTasks: () => Promise<void>;
   fetchNotes: () => Promise<void>;
+  fetchSubtasks: (taskId: string) => Promise<void>;
   
   // Board actions
   addBoard: (name: string, description: string) => Promise<void>;
@@ -26,15 +28,20 @@ interface AppState {
   updateBoard: (id: string, name: string, description: string) => Promise<void>;
   
   // Task actions
-  addTask: (boardId: string, title: string, description: string, priority: Priority) => Promise<void>;
+  addTask: (boardId: string, title: string, description: string, priority: Priority, checklist?: ChecklistItem[]) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   moveTask: (id: string, column: ColumnType) => Promise<void>;
   
+  // Subtask actions
+  addSubtask: (taskId: string, title: string) => Promise<void>;
+  updateSubtask: (id: string, title?: string, completed?: boolean) => Promise<void>;
+  deleteSubtask: (id: string, taskId: string) => Promise<void>;
+  
   // Note actions
-  addNote: (title: string, content: string) => Promise<void>;
+  addNote: (title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
-  updateNote: (id: string, title: string, content: string) => Promise<void>;
+  updateNote: (id: string, title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
 }
 
 export const useStore = create<AppState>()((set, get) => ({
@@ -42,6 +49,7 @@ export const useStore = create<AppState>()((set, get) => ({
   boards: [],
   tasks: [],
   notes: [],
+  subtasks: {},
   isLoading: false,
   
   setUser: (user) => set({ user }),
@@ -86,7 +94,7 @@ export const useStore = create<AppState>()((set, get) => ({
   
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    set({ user: null, boards: [], tasks: [], notes: [] });
+    set({ user: null, boards: [], tasks: [], notes: [], subtasks: {} });
   },
   
   fetchBoards: async () => {
@@ -105,6 +113,14 @@ export const useStore = create<AppState>()((set, get) => ({
     const res = await fetch('/api/notes');
     const notes = await res.json();
     set({ notes });
+  },
+  
+  fetchSubtasks: async (taskId) => {
+    const res = await fetch(`/api/subtasks?taskId=${taskId}`);
+    const subtasks = await res.json();
+    set((state) => ({
+      subtasks: { ...state.subtasks, [taskId]: subtasks }
+    }));
   },
   
   addBoard: async (name, description) => {
@@ -137,11 +153,11 @@ export const useStore = create<AppState>()((set, get) => ({
     }));
   },
   
-  addTask: async (boardId, title, description, priority) => {
+  addTask: async (boardId, title, description, priority, checklist = []) => {
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ boardId, title, description, priority }),
+      body: JSON.stringify({ boardId, title, description, priority, checklist }),
     });
     const task = await res.json();
     set((state) => ({ tasks: [task, ...state.tasks] }));
@@ -149,7 +165,10 @@ export const useStore = create<AppState>()((set, get) => ({
   
   deleteTask: async (id) => {
     await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
-    set((state) => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+    set((state) => ({ 
+      tasks: state.tasks.filter(t => t.id !== id),
+      subtasks: { ...state.subtasks, [id]: [] }
+    }));
   },
   
   updateTask: async (id, updates) => {
@@ -176,11 +195,53 @@ export const useStore = create<AppState>()((set, get) => ({
     }));
   },
   
-  addNote: async (title, content) => {
+  addSubtask: async (taskId, title) => {
+    const res = await fetch('/api/subtasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, title }),
+    });
+    const subtask = await res.json();
+    set((state) => ({
+      subtasks: {
+        ...state.subtasks,
+        [taskId]: [...(state.subtasks[taskId] || []), subtask]
+      }
+    }));
+  },
+  
+  updateSubtask: async (id, title, completed) => {
+    const res = await fetch('/api/subtasks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, title, completed }),
+    });
+    const updated = await res.json();
+    set((state) => ({
+      subtasks: Object.fromEntries(
+        Object.entries(state.subtasks).map(([taskId, subs]) => [
+          taskId,
+          subs.map(s => s.id === id ? updated : s)
+        ])
+      )
+    }));
+  },
+  
+  deleteSubtask: async (id, taskId) => {
+    await fetch(`/api/subtasks?id=${id}`, { method: 'DELETE' });
+    set((state) => ({
+      subtasks: {
+        ...state.subtasks,
+        [taskId]: state.subtasks[taskId]?.filter(s => s.id !== id) || []
+      }
+    }));
+  },
+  
+  addNote: async (title, content, checklist = []) => {
     const res = await fetch('/api/notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify({ title, content, checklist }),
     });
     const note = await res.json();
     set((state) => ({ notes: [note, ...state.notes] }));
@@ -191,11 +252,11 @@ export const useStore = create<AppState>()((set, get) => ({
     set((state) => ({ notes: state.notes.filter(n => n.id !== id) }));
   },
   
-  updateNote: async (id, title, content) => {
+  updateNote: async (id, title, content, checklist) => {
     const res = await fetch('/api/notes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, content }),
+      body: JSON.stringify({ id, title, content, checklist }),
     });
     const note = await res.json();
     set((state) => ({

@@ -12,7 +12,13 @@ export async function GET() {
     where: { userId: session.userId },
     orderBy: { updatedAt: 'desc' },
   });
-  return NextResponse.json(notes);
+  
+  const notesWithChecklist = notes.map(note => ({
+    ...note,
+    checklist: JSON.parse(note.checklist || '[]')
+  }));
+  
+  return NextResponse.json(notesWithChecklist);
 }
 
 export async function POST(request: Request) {
@@ -21,11 +27,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { title, content } = await request.json();
+  const { title, content, checklist } = await request.json();
   const note = await prisma.note.create({
-    data: { title, content, userId: session.userId },
+    data: { 
+      title, 
+      content, 
+      checklist: JSON.stringify(checklist || []),
+      userId: session.userId 
+    },
   });
-  return NextResponse.json(note);
+  
+  return NextResponse.json({
+    ...note,
+    checklist: JSON.parse(note.checklist)
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -50,10 +65,20 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, title, content } = await request.json();
+  const { id, title, content, checklist } = await request.json();
+  const updateData: any = { title, content };
+  
+  if (checklist !== undefined) {
+    updateData.checklist = JSON.stringify(checklist);
+  }
+  
   const note = await prisma.note.update({
     where: { id, userId: session.userId },
-    data: { title, content },
+    data: updateData,
   });
-  return NextResponse.json(note);
+  
+  return NextResponse.json({
+    ...note,
+    checklist: JSON.parse(note.checklist)
+  });
 }

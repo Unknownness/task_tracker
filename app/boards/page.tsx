@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useStore } from '@/lib/store';
-import { Task, Priority, ColumnType } from '@/lib/types';
+import { Task, Priority, ColumnType, ChecklistItem } from '@/lib/types';
 import KanbanColumn from '@/components/KanbanColumn';
 import Modal from '@/components/Modal';
 import AuthGuard from '@/components/AuthGuard';
+import Checklist from '@/components/Checklist';
+import Subtasks from '@/components/Subtasks';
 import { Plus, Trash2 } from 'lucide-react';
 
 export default function BoardsPage() {
@@ -44,6 +46,7 @@ function BoardsContent() {
     title: '',
     description: '',
     priority: 'medium' as Priority,
+    checklist: [] as ChecklistItem[],
   });
 
   if (!mounted) return null;
@@ -69,8 +72,8 @@ function BoardsContent() {
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (taskForm.title.trim() && selectedBoardId) {
-      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority);
-      setTaskForm({ title: '', description: '', priority: 'medium' });
+      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority, taskForm.checklist);
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [] });
       setIsCreateTaskOpen(false);
     }
   };
@@ -82,8 +85,9 @@ function BoardsContent() {
         title: taskForm.title,
         description: taskForm.description,
         priority: taskForm.priority,
+        checklist: taskForm.checklist,
       });
-      setTaskForm({ title: '', description: '', priority: 'medium' });
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [] });
       setIsEditTaskOpen(false);
       setEditingTask(null);
     }
@@ -95,6 +99,7 @@ function BoardsContent() {
       title: task.title,
       description: task.description,
       priority: task.priority,
+      checklist: task.checklist || [],
     });
     setIsEditTaskOpen(true);
   };
@@ -287,6 +292,15 @@ function BoardsContent() {
               <option value="high">High</option>
             </select>
           </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist (optional)
+            </label>
+            <Checklist 
+              items={taskForm.checklist} 
+              onChange={(items) => setTaskForm({ ...taskForm, checklist: items })}
+            />
+          </div>
           <button
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
@@ -345,6 +359,20 @@ function BoardsContent() {
               <option value="high">High</option>
             </select>
           </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist
+            </label>
+            <Checklist 
+              items={taskForm.checklist} 
+              onChange={(items) => setTaskForm({ ...taskForm, checklist: items })}
+            />
+          </div>
+          {editingTask && (
+            <div className="mb-6 pt-4 border-t border-gray-200">
+              <Subtasks taskId={editingTask.id} />
+            </div>
+          )}
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
