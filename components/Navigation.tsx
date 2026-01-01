@@ -9,7 +9,9 @@ import { LayoutDashboard, StickyNote, LogOut, User } from 'lucide-react';
 export default function Navigation() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, fetchUser, logout } = useStore();
+  const user = useStore((state) => state.user);
+  const fetchUser = useStore((state) => state.fetchUser);
+  const logout = useStore((state) => state.logout);
 
   useEffect(() => {
     fetchUser();

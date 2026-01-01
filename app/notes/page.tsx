@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
+import { shallow } from 'zustand/shallow';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Note, ChecklistItem } from '@/lib/types';
 import NoteCard from '@/components/NoteCard';
 import Modal from '@/components/Modal';
@@ -18,7 +20,11 @@ export default function NotesPage() {
 }
 
 function NotesContent() {
-  const { notes, addNote, deleteNote, updateNote, fetchNotes } = useStore();
+  const notes = useStoreWithEqualityFn(useStore, (state) => state.notes, shallow);
+  const addNote = useStore((state) => state.addNote);
+  const deleteNote = useStore((state) => state.deleteNote);
+  const updateNote = useStore((state) => state.updateNote);
+  const fetchNotes = useStore((state) => state.fetchNotes);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);

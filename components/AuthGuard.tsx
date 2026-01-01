@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
+import { shallow } from 'zustand/shallow';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, fetchUser } = useStore();
+  const user = useStoreWithEqualityFn(useStore, (state) => state.user, shallow);
+  const fetchUser = useStore((state) => state.fetchUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

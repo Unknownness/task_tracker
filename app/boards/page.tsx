@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useStore } from '@/lib/store';
+import { shallow } from 'zustand/shallow';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Task, Priority, ColumnType, ChecklistItem } from '@/lib/types';
 import KanbanColumn from '@/components/KanbanColumn';
 import Modal from '@/components/Modal';
@@ -20,7 +22,16 @@ export default function BoardsPage() {
 }
 
 function BoardsContent() {
-  const { boards, tasks, addBoard, deleteBoard, addTask, deleteTask, updateTask, moveTask, fetchBoards, fetchTasks } = useStore();
+  const boards = useStoreWithEqualityFn(useStore, (state) =>state.boards, shallow);
+  const tasks = useStoreWithEqualityFn(useStore, (state) =>state.tasks, shallow);
+  const addBoard = useStore((state) => state.addBoard);
+  const deleteBoard = useStore((state) => state.deleteBoard);
+  const addTask = useStore((state) => state.addTask);
+  const deleteTask = useStore((state) => state.deleteTask);
+  const updateTask = useStore((state) => state.updateTask);
+  const moveTask = useStore((state) => state.moveTask);
+  const fetchBoards = useStore((state) => state.fetchBoards);
+  const fetchTasks = useStore((state) => state.fetchTasks);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
