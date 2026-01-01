@@ -13,15 +13,6 @@ export interface ChecklistItem {
   completed: boolean;
 }
 
-export interface Subtask {
-  id: string;
-  title: string;
-  completed: boolean;
-  taskId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface Task {
   id: string;
   title: string;
@@ -31,7 +22,8 @@ export interface Task {
   checklist: ChecklistItem[];
   boardId: string;
   userId: string;
-  subtasks?: Subtask[];
+  parentTaskId?: string | null;
+  subtasks?: Task[];
   createdAt: string;
   updatedAt: string;
 }

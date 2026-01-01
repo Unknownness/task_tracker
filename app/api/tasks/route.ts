@@ -10,13 +10,21 @@ export async function GET() {
 
   const tasks = await prisma.task.findMany({
     where: { userId: session.userId },
-    include: { subtasks: true },
+    include: { 
+      subtasks: {
+        include: { subtasks: true }
+      }
+    },
     orderBy: { createdAt: 'desc' },
   });
   
   const tasksWithChecklist = tasks.map(task => ({
     ...task,
-    checklist: JSON.parse(task.checklist || '[]')
+    checklist: JSON.parse(task.checklist || '[]'),
+    subtasks: task.subtasks?.map(sub => ({
+      ...sub,
+      checklist: JSON.parse(sub.checklist || '[]')
+    }))
   }));
   
   return NextResponse.json(tasksWithChecklist);
@@ -28,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { boardId, title, description, priority, checklist } = await request.json();
+  const { boardId, title, description, priority, checklist, parentTaskId } = await request.json();
   const task = await prisma.task.create({
     data: {
       boardId,
@@ -38,13 +46,22 @@ export async function POST(request: Request) {
       column: 'todo',
       checklist: JSON.stringify(checklist || []),
       userId: session.userId,
+      parentTaskId: parentTaskId || null,
     },
-    include: { subtasks: true },
+    include: { 
+      subtasks: {
+        include: { subtasks: true }
+      }
+    },
   });
   
   return NextResponse.json({
     ...task,
-    checklist: JSON.parse(task.checklist)
+    checklist: JSON.parse(task.checklist),
+    subtasks: task.subtasks?.map(sub => ({
+      ...sub,
+      checklist: JSON.parse(sub.checklist || '[]')
+    }))
   });
 }
 
@@ -80,11 +97,19 @@ export async function PUT(request: Request) {
   const task = await prisma.task.update({
     where: { id, userId: session.userId },
     data: updateData,
-    include: { subtasks: true },
+    include: { 
+      subtasks: {
+        include: { subtasks: true }
+      }
+    },
   });
   
   return NextResponse.json({
     ...task,
-    checklist: JSON.parse(task.checklist)
+    checklist: JSON.parse(task.checklist),
+    subtasks: task.subtasks?.map(sub => ({
+      ...sub,
+      checklist: JSON.parse(sub.checklist || '[]')
+    }))
   });
 }

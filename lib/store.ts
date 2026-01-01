@@ -1,12 +1,11 @@
 import { create } from 'zustand';
-import { Board, Task, Note, ColumnType, Priority, User, Subtask, ChecklistItem } from './types';
+import { Board, Task, Note, ColumnType, Priority, User, ChecklistItem } from './types';
 
 interface AppState {
   user: User | null;
   boards: Board[];
   tasks: Task[];
   notes: Note[];
-  subtasks: Record<string, Subtask[]>;
   isLoading: boolean;
   
   // Auth actions
@@ -20,7 +19,6 @@ interface AppState {
   fetchBoards: () => Promise<void>;
   fetchTasks: () => Promise<void>;
   fetchNotes: () => Promise<void>;
-  fetchSubtasks: (taskId: string) => Promise<void>;
   
   // Board actions
   addBoard: (name: string, description: string) => Promise<void>;
@@ -28,15 +26,10 @@ interface AppState {
   updateBoard: (id: string, name: string, description: string) => Promise<void>;
   
   // Task actions
-  addTask: (boardId: string, title: string, description: string, priority: Priority, checklist?: ChecklistItem[]) => Promise<void>;
+  addTask: (boardId: string, title: string, description: string, priority: Priority, checklist?: ChecklistItem[], parentTaskId?: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   moveTask: (id: string, column: ColumnType) => Promise<void>;
-  
-  // Subtask actions
-  addSubtask: (taskId: string, title: string) => Promise<void>;
-  updateSubtask: (id: string, title?: string, completed?: boolean) => Promise<void>;
-  deleteSubtask: (id: string, taskId: string) => Promise<void>;
   
   // Note actions
   addNote: (title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
@@ -49,7 +42,6 @@ export const useStore = create<AppState>()((set, get) => ({
   boards: [],
   tasks: [],
   notes: [],
-  subtasks: {},
   isLoading: false,
   
   setUser: (user) => set({ user }),
@@ -94,7 +86,7 @@ export const useStore = create<AppState>()((set, get) => ({
   
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    set({ user: null, boards: [], tasks: [], notes: [], subtasks: {} });
+    set({ user: null, boards: [], tasks: [], notes: [] });
   },
   
   fetchBoards: async () => {
@@ -113,14 +105,6 @@ export const useStore = create<AppState>()((set, get) => ({
     const res = await fetch('/api/notes');
     const notes = await res.json();
     set({ notes });
-  },
-  
-  fetchSubtasks: async (taskId) => {
-    const res = await fetch(`/api/subtasks?taskId=${taskId}`);
-    const subtasks = await res.json();
-    set((state) => ({
-      subtasks: { ...state.subtasks, [taskId]: subtasks }
-    }));
   },
   
   addBoard: async (name, description) => {
@@ -153,21 +137,33 @@ export const useStore = create<AppState>()((set, get) => ({
     }));
   },
   
-  addTask: async (boardId, title, description, priority, checklist = []) => {
+  addTask: async (boardId, title, description, priority, checklist = [], parentTaskId) => {
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ boardId, title, description, priority, checklist }),
+      body: JSON.stringify({ boardId, title, description, priority, checklist, parentTaskId }),
     });
     const task = await res.json();
-    set((state) => ({ tasks: [task, ...state.tasks] }));
+    if (parentTaskId) {
+      set((state) => ({
+        tasks: state.tasks.map(t => 
+          t.id === parentTaskId 
+            ? { ...t, subtasks: [...(t.subtasks || []), task] }
+            : t
+        )
+      }));
+    } else {
+      set((state) => ({ tasks: [task, ...state.tasks] }));
+    }
   },
   
   deleteTask: async (id) => {
     await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
     set((state) => ({ 
-      tasks: state.tasks.filter(t => t.id !== id),
-      subtasks: { ...state.subtasks, [id]: [] }
+      tasks: state.tasks.filter(t => t.id !== id).map(t => ({
+        ...t,
+        subtasks: t.subtasks?.filter(s => s.id !== id)
+      }))
     }));
   },
   
@@ -192,48 +188,6 @@ export const useStore = create<AppState>()((set, get) => ({
     const task = await res.json();
     set((state) => ({
       tasks: state.tasks.map(t => t.id === id ? task : t),
-    }));
-  },
-  
-  addSubtask: async (taskId, title) => {
-    const res = await fetch('/api/subtasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, title }),
-    });
-    const subtask = await res.json();
-    set((state) => ({
-      subtasks: {
-        ...state.subtasks,
-        [taskId]: [...(state.subtasks[taskId] || []), subtask]
-      }
-    }));
-  },
-  
-  updateSubtask: async (id, title, completed) => {
-    const res = await fetch('/api/subtasks', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, completed }),
-    });
-    const updated = await res.json();
-    set((state) => ({
-      subtasks: Object.fromEntries(
-        Object.entries(state.subtasks).map(([taskId, subs]) => [
-          taskId,
-          subs.map(s => s.id === id ? updated : s)
-        ])
-      )
-    }));
-  },
-  
-  deleteSubtask: async (id, taskId) => {
-    await fetch(`/api/subtasks?id=${id}`, { method: 'DELETE' });
-    set((state) => ({
-      subtasks: {
-        ...state.subtasks,
-        [taskId]: state.subtasks[taskId]?.filter(s => s.id !== id) || []
-      }
     }));
   },
   

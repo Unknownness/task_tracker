@@ -41,19 +41,11 @@ model Task {
   board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subtasks    Subtask[]
+  parentTaskId String?  
+  parentTask  Task?     @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks    Task[]    @relation("TaskSubtasks")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-}
-
-model Subtask {
-  id        String   @id @default(uuid())
-  title     String
-  completed Boolean  @default(false)
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Note {

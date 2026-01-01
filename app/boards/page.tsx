@@ -9,7 +9,6 @@ import KanbanColumn from '@/components/KanbanColumn';
 import Modal from '@/components/Modal';
 import AuthGuard from '@/components/AuthGuard';
 import Checklist from '@/components/Checklist';
-import Subtasks from '@/components/Subtasks';
 import { Plus, Trash2 } from 'lucide-react';
 
 export default function BoardsPage() {
@@ -47,12 +46,13 @@ function BoardsContent() {
     description: '',
     priority: 'medium' as Priority,
     checklist: [] as ChecklistItem[],
+    parentTaskId: null as string | null,
   });
 
   if (!mounted) return null;
 
   const selectedBoard = boards.find(b => b.id === selectedBoardId);
-  const boardTasks = tasks.filter(t => t.boardId === selectedBoardId);
+  const boardTasks = tasks.filter(t => t.boardId === selectedBoardId && !t.parentTaskId);
 
   const columns: { id: ColumnType; title: string }[] = [
     { id: 'todo', title: 'To Do' },
@@ -72,8 +72,8 @@ function BoardsContent() {
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (taskForm.title.trim() && selectedBoardId) {
-      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority, taskForm.checklist);
-      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [] });
+      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority, taskForm.checklist, taskForm.parentTaskId || undefined);
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
       setIsCreateTaskOpen(false);
     }
   };
@@ -87,7 +87,7 @@ function BoardsContent() {
         priority: taskForm.priority,
         checklist: taskForm.checklist,
       });
-      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [] });
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
       setIsEditTaskOpen(false);
       setEditingTask(null);
     }
@@ -100,8 +100,20 @@ function BoardsContent() {
       description: task.description,
       priority: task.priority,
       checklist: task.checklist || [],
+      parentTaskId: task.parentTaskId || null,
     });
     setIsEditTaskOpen(true);
+  };
+
+  const openCreateSubtask = (parentTask: Task) => {
+    setTaskForm({
+      title: '',
+      description: '',
+      priority: 'medium',
+      checklist: [],
+      parentTaskId: parentTask.id,
+    });
+    setIsCreateTaskOpen(true);
   };
 
   return (
@@ -248,8 +260,11 @@ function BoardsContent() {
 
       <Modal
         isOpen={isCreateTaskOpen}
-        onClose={() => setIsCreateTaskOpen(false)}
-        title="Create New Task"
+        onClose={() => {
+          setIsCreateTaskOpen(false);
+          setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
+        }}
+        title={taskForm.parentTaskId ? "Create Subtask" : "Create New Task"}
       >
         <form onSubmit={handleCreateTask}>
           <div className="mb-4">
@@ -305,7 +320,7 @@ function BoardsContent() {
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
-            Create Task
+            {taskForm.parentTaskId ? 'Create Subtask' : 'Create Task'}
           </button>
         </form>
       </Modal>
@@ -368,9 +383,19 @@ function BoardsContent() {
               onChange={(items) => setTaskForm({ ...taskForm, checklist: items })}
             />
           </div>
-          {editingTask && (
+          {editingTask && !editingTask.parentTaskId && (
             <div className="mb-6 pt-4 border-t border-gray-200">
-              <Subtasks taskId={editingTask.id} />
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditTaskOpen(false);
+                  openCreateSubtask(editingTask);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <Plus size={16} />
+                Add Subtask
+              </button>
             </div>
           )}
           <button
