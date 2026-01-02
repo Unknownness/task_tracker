@@ -37,7 +37,7 @@ export default function Checklist({ items, onChange, editable = true }: Checklis
           <button
             type="button"
             onClick={() => toggleItem(item.id)}
-            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+            className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
               item.completed
                 ? 'bg-green-500 border-green-500'
                 : 'border-gray-300 hover:border-green-500'

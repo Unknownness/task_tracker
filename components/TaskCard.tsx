@@ -124,7 +124,7 @@ export default function TaskCard({ task, onDelete, onEdit, isSubtask = false }: 
               <div key={item.id} className="flex items-center gap-2">
                 <button
                   onClick={() => toggleChecklistItem(item.id)}
-                  className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                  className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                     item.completed
                       ? 'bg-green-500 border-green-500'
                       : 'border-gray-300 hover:border-green-500'

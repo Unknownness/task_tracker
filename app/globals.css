@@ -10,3 +10,7 @@
     scrollbar-width: none;
   }
 }
+
+.markdown-preview pre code {
+  @apply !bg-transparent !text-gray-100 !p-0 !rounded-none;
+}
