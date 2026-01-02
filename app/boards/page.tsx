@@ -12,6 +12,7 @@ import Modal from '@/components/Modal';
 import AuthGuard from '@/components/AuthGuard';
 import Checklist from '@/components/Checklist';
 import { Plus, Trash2 } from 'lucide-react';
+import PrioritySelect from '@/components/PrioritySelect';
 
 export default function BoardsPage() {
   return (
@@ -307,16 +308,10 @@ function BoardsContent() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Priority
             </label>
-            <select
-              title='Priority'
-              value={taskForm.priority}
-              onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+              <PrioritySelect
+                value={taskForm.priority}
+                onChange={(priority) => setTaskForm({ ...taskForm, priority })}
+              />
           </div>
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -374,16 +369,10 @@ function BoardsContent() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Priority
             </label>
-            <select
-              title='Priority'
+            <PrioritySelect
               value={taskForm.priority}
-              onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+              onChange={(priority) => setTaskForm({ ...taskForm, priority })}
+            />
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">

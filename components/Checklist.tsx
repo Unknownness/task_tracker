@@ -50,6 +50,7 @@ export default function Checklist({ items, onChange, editable = true }: Checklis
           </span>
           {editable && (
             <button
+              title='Remove'
               type="button"
               onClick={() => removeItem(item.id)}
               className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
@@ -71,6 +72,7 @@ export default function Checklist({ items, onChange, editable = true }: Checklis
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
+            title='Add'
             type="button"
             onClick={addItem}
             className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

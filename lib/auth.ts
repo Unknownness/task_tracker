@@ -1,9 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function createToken(userId: string, email: string) {
   return await new SignJWT({ userId, email })
