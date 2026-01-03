@@ -4,14 +4,43 @@ import { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useStore } from '@/lib/store';
-import { Task, Priority, ColumnType } from '@/lib/types';
+import { shallow } from 'zustand/shallow';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
+import { Task, Priority, ColumnType, ChecklistItem } from '@/lib/types';
 import KanbanColumn from '@/components/KanbanColumn';
 import Modal from '@/components/Modal';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import AuthGuard from '@/components/AuthGuard';
+import Checklist from '@/components/Checklist';
+import { Plus, Trash2 } from 'lucide-react';
+import PrioritySelect from '@/components/PrioritySelect';
 
 export default function BoardsPage() {
-  const { boards, tasks, addBoard, deleteBoard, addTask, deleteTask, updateTask, moveTask } = useStore();
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+  return (
+    <AuthGuard>
+      <BoardsContent />
+    </AuthGuard>
+  );
+}
+
+function BoardsContent() {
+  const boards = useStoreWithEqualityFn(useStore, (state) => state.boards, shallow);
+  const tasks = useStoreWithEqualityFn(useStore, (state) => state.tasks, shallow);
+  const addBoard = useStore((state) => state.addBoard);
+  const deleteBoard = useStore((state) => state.deleteBoard);
+  const addTask = useStore((state) => state.addTask);
+  const deleteTask = useStore((state) => state.deleteTask);
+  const updateTask = useStore((state) => state.updateTask);
+  const moveTask = useStore((state) => state.moveTask);
+  const fetchBoards = useStore((state) => state.fetchBoards);
+  const fetchTasks = useStore((state) => state.fetchTasks);
+
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selected-board-id') || null;
+    }
+    return null;
+  });
+
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
@@ -20,11 +49,25 @@ export default function BoardsPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchBoards();
+    fetchTasks();
+  }, [fetchBoards, fetchTasks]);
 
   useEffect(() => {
-    if (mounted && boards.length > 0 && !selectedBoardId) {
-      setSelectedBoardId(boards[0].id);
+    if (selectedBoardId) {
+      localStorage.setItem('selected-board-id', selectedBoardId);
+    } else {
+      localStorage.removeItem('selected-board-id');
+    }
+  }, [selectedBoardId]);
+
+  useEffect(() => {
+    if (mounted && boards.length > 0) {
+      const isBoardExists = selectedBoardId && boards.some(b => b.id === selectedBoardId);
+
+      if (!selectedBoardId || !isBoardExists) {
+        setSelectedBoardId(boards[0].id);
+      }
     }
   }, [mounted, boards, selectedBoardId]);
 
@@ -33,12 +76,14 @@ export default function BoardsPage() {
     title: '',
     description: '',
     priority: 'medium' as Priority,
+    checklist: [] as ChecklistItem[],
+    parentTaskId: null as string | null,
   });
 
   if (!mounted) return null;
 
   const selectedBoard = boards.find(b => b.id === selectedBoardId);
-  const boardTasks = tasks.filter(t => t.boardId === selectedBoardId);
+  const boardTasks = tasks.filter(t => t.boardId === selectedBoardId && !t.parentTaskId);
 
   const columns: { id: ColumnType; title: string }[] = [
     { id: 'todo', title: 'To Do' },
@@ -58,8 +103,8 @@ export default function BoardsPage() {
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (taskForm.title.trim() && selectedBoardId) {
-      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority);
-      setTaskForm({ title: '', description: '', priority: 'medium' });
+      addTask(selectedBoardId, taskForm.title, taskForm.description, taskForm.priority, taskForm.checklist, taskForm.parentTaskId || undefined);
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
       setIsCreateTaskOpen(false);
     }
   };
@@ -71,8 +116,9 @@ export default function BoardsPage() {
         title: taskForm.title,
         description: taskForm.description,
         priority: taskForm.priority,
+        checklist: taskForm.checklist,
       });
-      setTaskForm({ title: '', description: '', priority: 'medium' });
+      setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
       setIsEditTaskOpen(false);
       setEditingTask(null);
     }
@@ -84,8 +130,21 @@ export default function BoardsPage() {
       title: task.title,
       description: task.description,
       priority: task.priority,
+      checklist: task.checklist || [],
+      parentTaskId: task.parentTaskId || null,
     });
     setIsEditTaskOpen(true);
+  };
+
+  const openCreateSubtask = (parentTask: Task) => {
+    setTaskForm({
+      title: '',
+      description: '',
+      priority: 'medium',
+      checklist: [],
+      parentTaskId: parentTask.id,
+    });
+    setIsCreateTaskOpen(true);
   };
 
   return (
@@ -232,8 +291,11 @@ export default function BoardsPage() {
 
       <Modal
         isOpen={isCreateTaskOpen}
-        onClose={() => setIsCreateTaskOpen(false)}
-        title="Create New Task"
+        onClose={() => {
+          setIsCreateTaskOpen(false);
+          setTaskForm({ title: '', description: '', priority: 'medium', checklist: [], parentTaskId: null });
+        }}
+        title={taskForm.parentTaskId ? "Create Subtask" : "Create New Task"}
       >
         <form onSubmit={handleCreateTask}>
           <div className="mb-4">
@@ -265,22 +327,25 @@ export default function BoardsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Priority
             </label>
-            <select
-              title='Priority'
-              value={taskForm.priority}
-              onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+              <PrioritySelect
+                value={taskForm.priority}
+                onChange={(priority) => setTaskForm({ ...taskForm, priority })}
+              />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist (optional)
+            </label>
+            <Checklist 
+              items={taskForm.checklist} 
+              onChange={(items) => setTaskForm({ ...taskForm, checklist: items })}
+            />
           </div>
           <button
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
-            Create Task
+            {taskForm.parentTaskId ? 'Create Subtask' : 'Create Task'}
           </button>
         </form>
       </Modal>
@@ -323,17 +388,35 @@ export default function BoardsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Priority
             </label>
-            <select
-              title='Priority'
+            <PrioritySelect
               value={taskForm.priority}
-              onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as Priority })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+              onChange={(priority) => setTaskForm({ ...taskForm, priority })}
+            />
           </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Checklist
+            </label>
+            <Checklist 
+              items={taskForm.checklist} 
+              onChange={(items) => setTaskForm({ ...taskForm, checklist: items })}
+            />
+          </div>
+          {editingTask && !editingTask.parentTaskId && (
+            <div className="mb-6 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditTaskOpen(false);
+                  openCreateSubtask(editingTask);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <Plus size={16} />
+                Add Subtask
+              </button>
+            </div>
+          )}
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"

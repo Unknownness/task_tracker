@@ -1,108 +1,251 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Board, Task, Note, ColumnType, Priority } from './types';
+import { Board, Task, Note, ColumnType, Priority, User, ChecklistItem } from './types';
+
+const updateTaskRecursive = (tasks: Task[], id: string, updates: Partial<Task>): Task[] => {
+  return tasks.map(task => {
+    if (task.id === id) {
+      return { ...task, ...updates };
+    }
+    if (task.subtasks && task.subtasks.length > 0) {
+      const updatedSubtasks = updateTaskRecursive(task.subtasks, id, updates);
+      return {
+        ...task,
+        subtasks: updatedSubtasks
+      };
+    }
+    return task;
+  });
+};
+
+const deleteTaskRecursive = (tasks: Task[], id: string): Task[] => {
+  return tasks.filter(task => {
+    if (task.id === id) return false;
+    
+    if (task.subtasks && task.subtasks.length > 0) {
+      return {
+        ...task,
+        subtasks: deleteTaskRecursive(task.subtasks, id)
+      };
+    }
+    
+    return true;
+  }).map(task => {
+    if (task.subtasks) {
+      return {
+        ...task,
+        subtasks: deleteTaskRecursive(task.subtasks, id)
+      };
+    }
+    return task;
+  });
+};
 
 interface AppState {
+  user: User | null;
   boards: Board[];
   tasks: Task[];
   notes: Note[];
+  isLoading: boolean;
   
-  // Board actions
-  addBoard: (name: string, description: string) => void;
-  deleteBoard: (id: string) => void;
-  updateBoard: (id: string, name: string, description: string) => void;
+  setUser: (user: User | null) => void;
+  fetchUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
   
-  // Task actions
-  addTask: (boardId: string, title: string, description: string, priority: Priority) => void;
-  deleteTask: (id: string) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  moveTask: (id: string, column: ColumnType) => void;
+  fetchBoards: () => Promise<void>;
+  fetchTasks: () => Promise<void>;
+  fetchNotes: () => Promise<void>;
   
-  // Note actions
-  addNote: (title: string, content: string) => void;
-  deleteNote: (id: string) => void;
-  updateNote: (id: string, title: string, content: string) => void;
+  addBoard: (name: string, description: string) => Promise<void>;
+  deleteBoard: (id: string) => Promise<void>;
+  updateBoard: (id: string, name: string, description: string) => Promise<void>;
+  
+  addTask: (boardId: string, title: string, description: string, priority: Priority, checklist?: ChecklistItem[], parentTaskId?: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  moveTask: (id: string, column: ColumnType) => Promise<void>;
+  
+  addNote: (title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
+  updateNote: (id: string, title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
 }
 
-export const useStore = create<AppState>()(
-  persist(
-    (set) => ({
-      boards: [],
-      tasks: [],
-      notes: [],
-      
-      addBoard: (name, description) => set((state) => ({
-        boards: [...state.boards, {
-          id: crypto.randomUUID(),
-          name,
-          description,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteBoard: (id) => set((state) => ({
-        boards: state.boards.filter(b => b.id !== id),
-        tasks: state.tasks.filter(t => t.boardId !== id),
-      })),
-      
-      updateBoard: (id, name, description) => set((state) => ({
-        boards: state.boards.map(b => 
-          b.id === id ? { ...b, name, description, updatedAt: new Date().toISOString() } : b
-        ),
-      })),
-      
-      addTask: (boardId, title, description, priority) => set((state) => ({
-        tasks: [...state.tasks, {
-          id: crypto.randomUUID(),
-          title,
-          description,
-          priority,
-          column: 'todo',
-          boardId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteTask: (id) => set((state) => ({
-        tasks: state.tasks.filter(t => t.id !== id),
-      })),
-      
-      updateTask: (id, updates) => set((state) => ({
-        tasks: state.tasks.map(t => 
-          t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-        ),
-      })),
-      
-      moveTask: (id, column) => set((state) => ({
-        tasks: state.tasks.map(t => 
-          t.id === id ? { ...t, column, updatedAt: new Date().toISOString() } : t
-        ),
-      })),
-      
-      addNote: (title, content) => set((state) => ({
-        notes: [...state.notes, {
-          id: crypto.randomUUID(),
-          title,
-          content,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-      })),
-      
-      deleteNote: (id) => set((state) => ({
-        notes: state.notes.filter(n => n.id !== id),
-      })),
-      
-      updateNote: (id, title, content) => set((state) => ({
-        notes: state.notes.map(n => 
-          n.id === id ? { ...n, title, content, updatedAt: new Date().toISOString() } : n
-        ),
-      })),
-    }),
-    {
-      name: 'task-tracker-storage',
+export const useStore = create<AppState>()((set, get) => ({
+  user: null,
+  boards: [],
+  tasks: [],
+  notes: [],
+  isLoading: false,
+  
+  setUser: (user) => set({ user }),
+  
+  fetchUser: async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      set({ user: data.user });
+    } catch (error) {
+      set({ user: null });
     }
-  )
-);
+  },
+  
+  login: async (email, password) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Login failed');
+    }
+    const data = await res.json();
+    set({ user: data.user });
+  },
+  
+  register: async (email, password, name) => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Registration failed');
+    }
+    const data = await res.json();
+    set({ user: data.user });
+  },
+  
+  logout: async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    set({ user: null, boards: [], tasks: [], notes: [] });
+  },
+  
+  fetchBoards: async () => {
+    const res = await fetch('/api/boards');
+    const boards = await res.json();
+    set({ boards });
+  },
+  
+  fetchTasks: async () => {
+    const res = await fetch('/api/tasks');
+    const tasks = await res.json();
+    set({ tasks });
+  },
+  
+  fetchNotes: async () => {
+    const res = await fetch('/api/notes');
+    const notes = await res.json();
+    set({ notes });
+  },
+  
+  addBoard: async (name, description) => {
+    const res = await fetch('/api/boards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description }),
+    });
+    const board = await res.json();
+    set((state) => ({ boards: [board, ...state.boards] }));
+  },
+  
+  deleteBoard: async (id) => {
+    await fetch(`/api/boards?id=${id}`, { method: 'DELETE' });
+    set((state) => ({
+      boards: state.boards.filter(b => b.id !== id),
+      tasks: state.tasks.filter(t => t.boardId !== id),
+    }));
+  },
+  
+  updateBoard: async (id, name, description) => {
+    const res = await fetch('/api/boards', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name, description }),
+    });
+    const board = await res.json();
+    set((state) => ({
+      boards: state.boards.map(b => b.id === id ? board : b),
+    }));
+  },
+  
+  addTask: async (boardId, title, description, priority, checklist = [], parentTaskId) => {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ boardId, title, description, priority, checklist, parentTaskId }),
+    });
+    const task = await res.json();
+    if (parentTaskId) {
+      set((state) => ({
+        tasks: state.tasks.map(t => 
+          t.id === parentTaskId 
+            ? { ...t, subtasks: [...(t.subtasks || []), task] }
+            : t
+        )
+      }));
+    } else {
+      set((state) => ({ tasks: [task, ...state.tasks] }));
+    }
+  },
+  
+  deleteTask: async (id) => {
+    await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
+    set((state) => ({ 
+      tasks: deleteTaskRecursive(state.tasks, id)
+    }));
+  },
+  
+  updateTask: async (id, updates) => {
+    const res = await fetch('/api/tasks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    const task = await res.json();
+    set((state) => ({
+      tasks: updateTaskRecursive(state.tasks, id, task)
+    }));
+  },
+  
+  moveTask: async (id, column) => {
+    const res = await fetch('/api/tasks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, column }),
+    });
+    const task = await res.json();
+    set((state) => ({
+      tasks: updateTaskRecursive(state.tasks, id, task)
+    }));
+  },
+  
+  addNote: async (title, content, checklist = []) => {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content, checklist }),
+    });
+    const note = await res.json();
+    set((state) => ({ notes: [note, ...state.notes] }));
+  },
+  
+  deleteNote: async (id) => {
+    await fetch(`/api/notes?id=${id}`, { method: 'DELETE' });
+    set((state) => ({ notes: state.notes.filter(n => n.id !== id) }));
+  },
+  
+  updateNote: async (id, title, content, checklist) => {
+    const res = await fetch('/api/notes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, title, content, checklist }),
+    });
+    const note = await res.json();
+    set((state) => ({
+      notes: state.notes.map(n => n.id === id ? note : n),
+    }));
+  },
+}));
