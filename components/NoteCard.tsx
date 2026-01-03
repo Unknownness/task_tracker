@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Note } from '@/lib/types';
 import { Trash2, Edit, Clock, CheckSquare, ChevronDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useStore } from '@/lib/store';
 import MarkdownPreview from './MarkdownPreview';
 
 interface NoteCardProps {
@@ -13,6 +14,8 @@ interface NoteCardProps {
 }
 
 export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
+  const updateNote = useStore((state) => state.updateNote);
+
   const checklistCount = note.checklist?.length || 0;
   const completedChecklist = note.checklist?.filter(c => c.completed).length || 0;
   const [expanded, setExpanded] = useState(false);
@@ -21,6 +24,13 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
   const hasChecklist = checklistCount > 0;
   const isLongContent = note.content.length > 200;
   const displayContent = expanded || !isLongContent ? note.content : `${note.content.substring(0, 200)}...`;
+
+  const toggleChecklistItem = async (itemId: string) => {
+    const updatedChecklist = note.checklist.map(item =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    await updateNote(note.id, note.title, note.content, updatedChecklist);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
@@ -75,11 +85,13 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
           {expandedChecklist && (
             <div className="mt-3 pl-7 space-y-2">
               {note.checklist.map((item) => (
-                <div key={item.id} className="flex items-center gap-2">
-                  <div className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center ${
-                    item.completed 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                <div key={item.id} className="flex items-center gap-2 group">
+                  <div 
+                    onClick={() => toggleChecklistItem(item.id)}
+                    className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                      item.completed 
+                        ? 'bg-green-500 border-green-500' 
+                        : 'border-gray-300 hover:border-green-400'
                   }`}>
                     {item.completed && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +99,7 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
                       </svg>
                     )}
                   </div>
-                  <span className={`text-sm ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                  <span className={`text-sm transition-all ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                     {item.text}
                   </span>
                 </div>
