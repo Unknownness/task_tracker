@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react'
 import { useDrop } from 'react-dnd';
 import { Task, ColumnType } from '@/lib/types';
 import TaskCard from './TaskCard';
@@ -35,6 +36,9 @@ export default function KanbanColumn({
     }),
   }));
 
+  const ref = useRef<HTMLDivElement>(null); 
+  drop(ref);
+
   return (
     <div className="flex-1 min-w-[300px]">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -46,7 +50,7 @@ export default function KanbanColumn({
         </div>
         
         <div
-          ref={drop}
+          ref={ref}
           className={`p-4 min-h-[500px] ${isOver ? 'bg-blue-50' : 'bg-gray-50'} transition-colors`}
         >
           {tasks.map((task) => (
