@@ -111,7 +111,6 @@ function NotesContent() {
           </button>
         </div>
 
-        {/* Фильтры и поиск */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-2">
             <button
@@ -154,7 +153,7 @@ function NotesContent() {
               <FileText size={40} className="text-green-400" />
             </div>
             <h2 className="text-2xl font-semibold text-gray-700 mb-2">Заметок пока нет</h2>
-            <p className="text-gray-500 mb-6">Создайте свою первую заметку с поддержкой Markdown</p>
+            <p className="text-gray-500 mb-6">Создайте свою первую заметку</p>
             <button
               onClick={() => setIsCreateOpen(true)}
               className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm hover:shadow-md"
@@ -184,12 +183,12 @@ function NotesContent() {
         )}
       </div>
 
-      {/* Модалка создания заметки */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Создать новую заметку"
         className="max-w-4xl"
+        size='xl'
       >
         <form onSubmit={handleCreateNote}>
           <div className="mb-6">
@@ -246,7 +245,6 @@ function NotesContent() {
         </form>
       </Modal>
 
-      {/* Модалка редактирования заметки */}
       <Modal
         isOpen={isEditOpen}
         onClose={() => {
@@ -255,6 +253,7 @@ function NotesContent() {
         }}
         title="Редактировать заметку"
         className="max-w-4xl"
+        size='xl'
       >
         <form onSubmit={handleEditNote}>
           <div className="mb-6">
@@ -262,6 +261,7 @@ function NotesContent() {
               Заголовок *
             </label>
             <input
+              title='Title'
               type="text"
               value={noteForm.title}
               onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
