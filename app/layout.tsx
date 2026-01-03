@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Task Tracker - Kanban & Notes',
   description: 'Modern task tracking with Kanban boards and notes',
+  icons: { icon: "/favicon.png" },
 };
 
 export default function RootLayout({
