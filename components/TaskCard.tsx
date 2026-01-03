@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useDrag } from 'react-dnd';
 import { Task } from '@/lib/types';
 import { Trash2, Edit, Clock, CheckSquare, ListTodo, ChevronDown, ChevronRight, Check } from 'lucide-react';
@@ -45,10 +45,13 @@ export default function TaskCard({ task, onDelete, onEdit, isSubtask = false }: 
     await updateTask(task.id, { checklist: updatedChecklist });
   };
 
+  const ref = useRef<HTMLDivElement>(null); 
+  if (!isSubtask) drag(ref);
+  
   return (
     <div className={isSubtask ? '' : 'mb-3'}>
       <div
-        ref={isSubtask ? null : drag}
+        ref={ref}
         className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${
           isSubtask ? '' : 'cursor-move hover:shadow-md'
         } transition-shadow ${
