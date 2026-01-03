@@ -92,7 +92,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, className
 
     onChange(newText);
 
-    // Устанавливаем курсор после вставки
     setTimeout(() => {
       textarea.focus();
       const newCursorPos = start + prefix.length + selectedText.length + suffix.length;
@@ -118,7 +117,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, className
 
   return (
     <div className={`border border-gray-300 rounded-lg overflow-hidden ${className}`}>
-      {/* Toolbar */}
       <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center justify-between">
         <div className="flex items-center gap-1 overflow-x-auto">
           <span className="text-xs text-gray-500 mr-2 whitespace-nowrap">Разметка:</span>
@@ -148,7 +146,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, className
         </button>
       </div>
 
-      {/* Content */}
       {showPreview ? (
         <div className="min-h-[200px] p-4 bg-white prose prose-sm max-w-none">
           <MarkdownPreview content={value} />
@@ -165,7 +162,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, className
         />
       )}
       
-      {/* Help text */}
       <div className="bg-gray-50 border-t border-gray-300 px-4 py-2">
         <p className="text-xs text-gray-500">
           Поддерживается Markdown: заголовки (# ##), *курсив*, **жирный**, списки (- 1.), [ссылки](url), `код`
