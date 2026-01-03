@@ -1,12 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LayoutDashboard, StickyNote, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-4xl w-full">

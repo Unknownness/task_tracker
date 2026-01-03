@@ -1,6 +1,45 @@
 import { create } from 'zustand';
 import { Board, Task, Note, ColumnType, Priority, User, ChecklistItem } from './types';
 
+const updateTaskRecursive = (tasks: Task[], id: string, updates: Partial<Task>): Task[] => {
+  return tasks.map(task => {
+    if (task.id === id) {
+      return { ...task, ...updates };
+    }
+    if (task.subtasks && task.subtasks.length > 0) {
+      const updatedSubtasks = updateTaskRecursive(task.subtasks, id, updates);
+      return {
+        ...task,
+        subtasks: updatedSubtasks
+      };
+    }
+    return task;
+  });
+};
+
+const deleteTaskRecursive = (tasks: Task[], id: string): Task[] => {
+  return tasks.filter(task => {
+    if (task.id === id) return false;
+    
+    if (task.subtasks && task.subtasks.length > 0) {
+      return {
+        ...task,
+        subtasks: deleteTaskRecursive(task.subtasks, id)
+      };
+    }
+    
+    return true;
+  }).map(task => {
+    if (task.subtasks) {
+      return {
+        ...task,
+        subtasks: deleteTaskRecursive(task.subtasks, id)
+      };
+    }
+    return task;
+  });
+};
+
 interface AppState {
   user: User | null;
   boards: Board[];
@@ -8,30 +47,25 @@ interface AppState {
   notes: Note[];
   isLoading: boolean;
   
-  // Auth actions
   setUser: (user: User | null) => void;
   fetchUser: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   
-  // Fetch actions
   fetchBoards: () => Promise<void>;
   fetchTasks: () => Promise<void>;
   fetchNotes: () => Promise<void>;
   
-  // Board actions
   addBoard: (name: string, description: string) => Promise<void>;
   deleteBoard: (id: string) => Promise<void>;
   updateBoard: (id: string, name: string, description: string) => Promise<void>;
   
-  // Task actions
   addTask: (boardId: string, title: string, description: string, priority: Priority, checklist?: ChecklistItem[], parentTaskId?: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   moveTask: (id: string, column: ColumnType) => Promise<void>;
   
-  // Note actions
   addNote: (title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   updateNote: (id: string, title: string, content: string, checklist?: ChecklistItem[]) => Promise<void>;
@@ -160,10 +194,7 @@ export const useStore = create<AppState>()((set, get) => ({
   deleteTask: async (id) => {
     await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
     set((state) => ({ 
-      tasks: state.tasks.filter(t => t.id !== id).map(t => ({
-        ...t,
-        subtasks: t.subtasks?.filter(s => s.id !== id)
-      }))
+      tasks: deleteTaskRecursive(state.tasks, id)
     }));
   },
   
@@ -175,7 +206,7 @@ export const useStore = create<AppState>()((set, get) => ({
     });
     const task = await res.json();
     set((state) => ({
-      tasks: state.tasks.map(t => t.id === id ? task : t),
+      tasks: updateTaskRecursive(state.tasks, id, task)
     }));
   },
   
@@ -187,7 +218,7 @@ export const useStore = create<AppState>()((set, get) => ({
     });
     const task = await res.json();
     set((state) => ({
-      tasks: state.tasks.map(t => t.id === id ? task : t),
+      tasks: updateTaskRecursive(state.tasks, id, task)
     }));
   },
   

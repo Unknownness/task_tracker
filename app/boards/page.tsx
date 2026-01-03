@@ -23,8 +23,8 @@ export default function BoardsPage() {
 }
 
 function BoardsContent() {
-  const boards = useStoreWithEqualityFn(useStore, (state) =>state.boards, shallow);
-  const tasks = useStoreWithEqualityFn(useStore, (state) =>state.tasks, shallow);
+  const boards = useStoreWithEqualityFn(useStore, (state) => state.boards, shallow);
+  const tasks = useStoreWithEqualityFn(useStore, (state) => state.tasks, shallow);
   const addBoard = useStore((state) => state.addBoard);
   const deleteBoard = useStore((state) => state.deleteBoard);
   const addTask = useStore((state) => state.addTask);
@@ -33,7 +33,14 @@ function BoardsContent() {
   const moveTask = useStore((state) => state.moveTask);
   const fetchBoards = useStore((state) => state.fetchBoards);
   const fetchTasks = useStore((state) => state.fetchTasks);
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selected-board-id') || null;
+    }
+    return null;
+  });
+
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
@@ -47,8 +54,20 @@ function BoardsContent() {
   }, [fetchBoards, fetchTasks]);
 
   useEffect(() => {
-    if (mounted && boards.length > 0 && !selectedBoardId) {
-      setSelectedBoardId(boards[0].id);
+    if (selectedBoardId) {
+      localStorage.setItem('selected-board-id', selectedBoardId);
+    } else {
+      localStorage.removeItem('selected-board-id');
+    }
+  }, [selectedBoardId]);
+
+  useEffect(() => {
+    if (mounted && boards.length > 0) {
+      const isBoardExists = selectedBoardId && boards.some(b => b.id === selectedBoardId);
+
+      if (!selectedBoardId || !isBoardExists) {
+        setSelectedBoardId(boards[0].id);
+      }
     }
   }, [mounted, boards, selectedBoardId]);
 
